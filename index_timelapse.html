@@ -9,8 +9,6 @@
 <style>
   body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
   #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-  
-  /* Legend & Controls Style */
   #console {
     position: absolute; top: 10px; left: 10px; width: 300px;
     background-color: white; padding: 10px 20px;
@@ -18,24 +16,16 @@
   }
   h1 { font-size: 16px; line-height: 1.4; margin-bottom: 10px; }
   h2 { font-size: 12px; color: #555; margin-bottom: 20px; font-weight: normal; }
-  
   .session { margin-bottom: 20px; }
   .row { height: 12px; width: 100%; }
-  .colors { background: linear-gradient(to right, #ffe082, #ffbd00, #ff8000, #ff0000); margin-bottom: 5px; }
-  .label { width: 15%; display: inline-block; text-align: center; font-size: 10px; color: #666; }
-  
   #slider-bar { width: 100%; margin-top: 10px; }
-  #play-btn { 
-    display: block; width: 100%; margin-top: 10px; padding: 8px; 
-    background: #333; color: white; border: none; cursor: pointer; border-radius: 3px; 
-  }
+  #play-btn { display: block; width: 100%; margin-top: 10px; padding: 8px; background: #333; color: white; border: none; cursor: pointer; border-radius: 3px; }
   #play-btn:hover { background: #555; }
 </style>
 </head>
 <body>
 
 <div id="map"></div>
-
 <div id="console">
   <h1>THESSALIA POPULATION<br>1991 - 2021</h1>
   <h2>Produced by: Orestis Marinou<br>Student ID: rs19004</h2>
@@ -44,102 +34,52 @@
     <div class="row" id="year-display" style="font-size: 24px; font-weight: bold; text-align: center; color: #333;">1991</div>
     <input id="slider-bar" type="range" min="0" max="3" step="1" value="0" />
   </div>
-
-  <div class="session">
-    <button id="play-btn">Play</button>
-  </div>
-  
-  <div style="font-size: 10px; color: #777; margin-top: 10px;">
-    Data source: Hellenic Statistical Authority
-  </div>
+  <div class="session"><button id="play-btn">Play</button></div>
 </div>
 
 <script>
-// 1. CONFIGURATION (ΡΥΘΜΙΣΕΙΣ)
-// ---------------------------------------------------------
-const DATA_FILE = 'dimoipoi_1991_2021.geojson'; // 
 
-
+const DATA_FILE = 'dimoipoi_1991_2021.geojson'; 
 const YEAR_COLUMNS = ['POP1991', 'POP2001', 'POP2011', 'POP2021']; 
 const YEARS_LABELS = ['1991', '2001', '2011', '2021'];
-// ---------------------------------------------------------
 
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  center: [22.45, 39.55],
-  zoom: 8
+  center: [22.45, 39.55], zoom: 8
 });
 
-let timer;
-let isPlaying = false;
+let timer; let isPlaying = false;
 
 map.on('load', () => {
-  // Load the GeoJSON
-  map.addSource('timelapse-data', {
-    type: 'geojson',
-    data: DATA_FILE
-  });
-
-  // Add the circle layer
+  map.addSource('timelapse-data', { type: 'geojson', data: DATA_FILE });
   map.addLayer({
-    id: 'population-circles',
-    type: 'circle',
-    source: 'timelapse-data',
+    id: 'population-circles', type: 'circle', source: 'timelapse-data',
     paint: {
-      'circle-color': '#ff4d4d',
-      'circle-opacity': 0.7,
-      'circle-stroke-color': 'white',
-      'circle-stroke-width': 1,
-      // Αρχική ρύθμιση μεγέθους για το πρώτο έτος (index 0)
-      'circle-radius': [
-        '*',
-        ['^', ['/', ['get', YEAR_COLUMNS[0]], 150000], 0.57], 
-        80 // Max radius pixels
-      ]
+      'circle-color': '#ff4d4d', 'circle-opacity': 0.7, 'circle-stroke-color': 'white', 'circle-stroke-width': 1,
+      'circle-radius': ['*', ['^', ['/', ['get', YEAR_COLUMNS[0]], 150000], 0.57], 80]
     }
   });
 });
 
-// Update Map function
 function updateMap(index) {
   document.getElementById('year-display').innerText = YEARS_LABELS[index];
   document.getElementById('slider-bar').value = index;
-  
-  const yearCol = YEAR_COLUMNS[index];
-  
   if (map.getLayer('population-circles')) {
-    map.setPaintProperty('population-circles', 'circle-radius', [
-      '*',
-      ['^', ['/', ['get', yearCol], 150000], 0.57], 
-      80
-    ]);
+    map.setPaintProperty('population-circles', 'circle-radius', ['*', ['^', ['/', ['get', YEAR_COLUMNS[index]], 150000], 0.57], 80]);
   }
 }
 
-// Slider Interaction
-document.getElementById('slider-bar').addEventListener('input', (e) => {
-  const idx = parseInt(e.target.value);
-  updateMap(idx);
-});
+document.getElementById('slider-bar').addEventListener('input', (e) => { updateMap(parseInt(e.target.value)); });
 
-// Play Button
 document.getElementById('play-btn').addEventListener('click', () => {
-  if (isPlaying) {
-    clearInterval(timer);
-    document.getElementById('play-btn').innerText = 'Play';
-    isPlaying = false;
-  } else {
-    document.getElementById('play-btn').innerText = 'Pause';
-    isPlaying = true;
+  if (isPlaying) { clearInterval(timer); document.getElementById('play-btn').innerText = 'Play'; isPlaying = false; } 
+  else {
+    document.getElementById('play-btn').innerText = 'Pause'; isPlaying = true;
     let idx = parseInt(document.getElementById('slider-bar').value);
-    timer = setInterval(() => {
-      idx = (idx + 1) % YEARS_LABELS.length;
-      updateMap(idx);
-    }, 1000); // Ταχύτητα: 1000ms = 1 δευτερόλεπτο ανά έτος
+    timer = setInterval(() => { idx = (idx + 1) % YEARS_LABELS.length; updateMap(idx); }, 1000);
   }
 });
-
 </script>
 </body>
 </html>
